@@ -148,16 +148,22 @@
         /* Нижняя навигация */
         .bottom-navigation {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #1a1a1a;
-            border-top: 1px solid #333;
-            padding: 8px 0;
+            bottom: 15px; /* Отступ снизу */
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 20px); /* Ширина с небольшими отступами по бокам */
+            max-width: 500px; /* Максимальная ширина для больших экранов */
+            background: rgba(40, 40, 40, 0.65); /* Полупрозрачный фон для эффекта стекла */
+            backdrop-filter: blur(15px); /* Эффект размытия */
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px; /* Скругление углов */
+            padding: 8px 5px;
             display: flex;
             justify-content: space-around;
             align-items: center;
             z-index: 1000;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
         }
 
         .nav-item {
