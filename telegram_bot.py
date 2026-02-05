@@ -607,10 +607,7 @@ async def retry_handler(callback_query: CallbackQuery):
 @dp.message(Command("admin"))
 async def admin_handler(message: types.Message):
     try:
-        # Явно уведомляем пользователя, если у него нет прав администратора
         if not Config.is_admin(message.from_user.id):
-            logger.info(f"Пользователь {message.from_user.id} попытался открыть /admin без прав")
-            await message.answer("❌ У вас нет прав администратора.")
             return
         workers = db.get_all_workers()
         keyboard = InlineKeyboardBuilder()
