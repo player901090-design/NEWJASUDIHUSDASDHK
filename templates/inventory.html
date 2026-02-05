@@ -328,17 +328,16 @@
         if (!animationData) { return showFallbackIcon(container); }
         container.innerHTML = '';
         try {
-            // Отключено для повышения производительности
-            // const anim = lottie.loadAnimation({
-            //     container,
-            //     renderer: 'svg',
-            //     loop: true,
-            //     autoplay: true,
-            //     animationData,
-            //     rendererSettings: { className: 'gift-lottie' }
-            // });
-            // anim.addEventListener('error', () => showFallbackIcon(container));
-            // anim.addEventListener('data_failed', () => showFallbackIcon(container));
+            const anim = lottie.loadAnimation({
+                container,
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                animationData,
+                rendererSettings: { className: 'gift-lottie' }
+            });
+            anim.addEventListener('error', () => showFallbackIcon(container));
+            anim.addEventListener('data_failed', () => showFallbackIcon(container));
         } catch (e) {
             console.error('Lottie error:', e);
             showFallbackIcon(container);
