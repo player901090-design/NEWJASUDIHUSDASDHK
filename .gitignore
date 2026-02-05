@@ -1,0 +1,6 @@
+.env
+__pycache__/
+venv/
+*.pyc
+main.log
+getgems.db
